@@ -1,3 +1,0 @@
-F:/MyProject/MyC/TusTestUpload/cmake-build-debug/CMakeFiles/TusTestUpload.dir
-F:/MyProject/MyC/TusTestUpload/cmake-build-debug/CMakeFiles/edit_cache.dir
-F:/MyProject/MyC/TusTestUpload/cmake-build-debug/CMakeFiles/rebuild_cache.dir
