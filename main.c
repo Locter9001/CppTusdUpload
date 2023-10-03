@@ -49,15 +49,24 @@ int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char 
         curl_easy_setopt(curl, CURLOPT_URL, url);
 
         // Set HTTP method to PATCH
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
 
-        // Set Authorization header
-        headers = curl_slist_append(headers, authorization);
+        char authorization_header[512];
+        snprintf(authorization_header, sizeof(authorization_header), "Authorization: Bearer %s", authorization);
+        headers = curl_slist_append(headers, authorization_header);
 
         // Set tus headers
         char content_type_header[256];
         snprintf(content_type_header, sizeof(content_type_header), "Content-Type: application/offset+octet-stream");
         headers = curl_slist_append(headers, content_type_header);
+
+        char content_length_header[256];
+        snprintf(content_length_header, sizeof(content_length_header), "Content-Length: %zu", file_size);
+        headers = curl_slist_append(headers, content_length_header);
+
+        char upload_length_header[256];
+        snprintf(upload_length_header, sizeof(upload_length_header), "Upload-Length: %zu", file_size);
+        headers = curl_slist_append(headers, upload_length_header);
 
         char upload_offset_header[256];
         snprintf(upload_offset_header, sizeof(upload_offset_header), "Upload-Offset: %zu", upload_ctx.uploaded_size);
@@ -99,11 +108,11 @@ int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char 
 }
 
 int main() {
-    char *url = "http://your-tus-server/files/";
-    char *file_path = "";
-    char *authorization = "";
-    char *file_name = "";
-    char *file_id = "";
+    char *url = "http://localhost:1081/files/";
+    char *file_path = "F:/Locter/Videos/file.mp4";
+    char *authorization = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7IklEIjoxLCJXaG8iOjEsIkRldmljZU1BQyI6IjAwLUUwLTEwLUVBLUI5LTAxIn0sImlzcyI6InR1c2QtYXBpIiwiZXhwIjoxNjk2MzUwOTY5LCJuYmYiOjE2OTYzNDc5NjksImlhdCI6MTY5NjM0Nzk2OX0.DEgYCiUBfVKPdEzD3seZtWUGi2-eHRQthNzxXUM2Me0";
+    char *file_name = "file.mp4";
+    char *file_id = "1";
 
     tus_upload(url, file_path, file_id, file_name, authorization);
 }

@@ -1,0 +1,12 @@
+# Ignore build directory
+build/
+cmake-build-debug/
+
+# Ignore .o and .a files
+*.o
+*.a
+
+# Ignore executables
+*.exe
+*.out
+*.app
