@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <curl/curl.h>
+#include <openssl/bio.h>
+#include <openssl/evp.h>
+#include <openssl/buffer.h>
 
 struct upload_status {
     size_t uploaded_size;
@@ -24,6 +27,28 @@ size_t payload_source(void *ptr, size_t size, size_t nmemb, void *userp) {
         upload_ctx->uploaded_size += remaining_bytes;
         return remaining_bytes;
     }
+}
+
+char* base64(const char* input, int length)
+{
+    BIO *bio, *b64;
+    BUF_MEM *bufferPtr;
+
+    b64 = BIO_new(BIO_f_base64());
+    bio = BIO_new(BIO_s_mem());
+    bio = BIO_push(b64, bio);
+
+    BIO_write(bio, input, length);
+    BIO_flush(bio);
+
+    BIO_get_mem_ptr(bio, &bufferPtr);
+    BIO_set_close(bio, BIO_NOCLOSE);
+    BIO_free_all(bio);
+
+    char* base64Data = (*bufferPtr).data;
+    base64Data[(*bufferPtr).length] = '\0';
+
+    return base64Data;
 }
 
 int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char *authorization) {
@@ -76,8 +101,13 @@ int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char 
         snprintf(tus_resumable_header, sizeof(tus_resumable_header), "Tus-Resumable: 1.0.0");
         headers = curl_slist_append(headers, tus_resumable_header);
 
+        char *base64_file_id;
+        base64_file_id = base64(file_id, (int)strlen(file_id));
+        char *base64_file_name;
+        base64_file_name = base64(file_name, (int)strlen(file_name));
+
         char metadata_header[256];
-        snprintf(metadata_header, sizeof(metadata_header), "Upload-Metadata: id %s, filename %s", file_id, file_name);
+        snprintf(metadata_header, sizeof(metadata_header), "Upload-Metadata: id %s, filename %s", base64_file_id, base64_file_name);
         headers = curl_slist_append(headers, metadata_header);
 
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -98,8 +128,9 @@ int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char 
         curl_easy_cleanup(curl);
         curl_slist_free_all(headers);
 
-
-        fprintf(stdout, "upload is ok!");
+        free(base64_file_id);
+        free(base64_file_name);
+        fprintf(stdout, "%d", res);
     }
 
     fclose(file);
@@ -110,7 +141,7 @@ int tus_upload(char *url, char *file_path, char *file_id, char *file_name, char 
 int main() {
     char *url = "http://localhost:1081/files/";
     char *file_path = "F:/Locter/Videos/file.mp4";
-    char *authorization = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7IklEIjoxLCJXaG8iOjEsIkRldmljZU1BQyI6IjAwLUUwLTEwLUVBLUI5LTAxIn0sImlzcyI6InR1c2QtYXBpIiwiZXhwIjoxNjk2MzUwOTY5LCJuYmYiOjE2OTYzNDc5NjksImlhdCI6MTY5NjM0Nzk2OX0.DEgYCiUBfVKPdEzD3seZtWUGi2-eHRQthNzxXUM2Me0";
+    char *authorization = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7IklEIjoxLCJXaG8iOjEsIkRldmljZU1BQyI6IjAwLUUwLTEwLUVBLUI5LTAxIn0sImlzcyI6InR1c2QtYXBpIiwiZXhwIjoxNjk2MzgwODg3LCJuYmYiOjE2OTYzNzc4ODcsImlhdCI6MTY5NjM3Nzg4N30._vuoY_veCECrqNz2n_3KE2ZmQndoVT-YSy8XkLGei3c";
     char *file_name = "file.mp4";
     char *file_id = "1";
 
